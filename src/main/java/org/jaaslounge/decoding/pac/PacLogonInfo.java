@@ -121,7 +121,7 @@ public class PacLogonInfo {
                 }
                 groups = new PacGroup[groupCount];
                 for(int i = 0; i < groupCount; i++) {
-                    //JKK pacStream.align(4);
+                    pacStream.align(4);
                     PacSid id = pacStream.readId();
                     int attributes = pacStream.readInt();
                     groups[i] = new PacGroup(id, attributes);
@@ -135,9 +135,7 @@ public class PacLogonInfo {
             // ID for domain (used with relative IDs to get SIDs)
             PacSid domainId = null;
             if(domainIdPointer != 0)
-            {
                 domainId = pacStream.readSid();
-            }
 
             // Extra SIDs data
             PacSidAttributes[] extraSidAtts = new PacSidAttributes[0];
@@ -163,25 +161,51 @@ public class PacLogonInfo {
             // ID for resource domain (used with relative IDs to get SIDs)
             PacSid resourceDomainId = null;
             if(resourceDomainIdPointer != 0)
-            {
                 resourceDomainId = pacStream.readSid();
-            }
 
             // Resource groups data
             PacGroup[] resourceGroups = new PacGroup[0];
-            if(hasResourceGroups && resourceGroupPointer != 0) {
-                int realResourceGroupCount = pacStream.readInt();
-                if(realResourceGroupCount != resourceGroupCount) {
-                    Object[] args = new Object[]{resourceGroupCount, realResourceGroupCount};
-                    throw new DecodingException("pac.resourcegroups.invalid.size", args, null);
+            if (resourceSIDCompressionEnabled(resourceDomainId))
+            {
+                // Resource groups data
+                if (hasResourceGroups && resourceGroupPointer != 0)
+                {
+                    int realResourceGroupCount = pacStream.readInt();
+                    if (realResourceGroupCount != resourceGroupCount)
+                    {
+                        Object[] args = new Object[]{resourceGroupCount, realResourceGroupCount};
+                        throw new DecodingException("pac.resourcegroups.invalid.size", args, null);
+                    }
+                    resourceGroups = new PacGroup[resourceGroupCount];
+                    for (int i = 0; i < resourceGroupCount; i++)
+                    {
+                        byte[] relativeId = new byte[4]; // is an unsigned int
+                        pacStream.readFully(relativeId);
+                        int attributes = (int) pacStream.readInt();
+                        PacSid relativeSid = PacSid.createFromSubs(relativeId);
+                        PacSid id = PacSid.append(resourceDomainId, relativeSid);
+                        resourceGroups[i] = new PacGroup(id, attributes);
+                    }
                 }
-                resourceGroups = new PacGroup[resourceGroupCount];
-                for(int i = 0; i < resourceGroupCount; i++) {
-                    //JKK PacSid id = pacStream.readSid();
-                    PacSid id = pacStream.readId();
+            }
+            else
+            {
 
-                    int attributes = pacStream.readInt();
-                    resourceGroups[i] = new PacGroup(id, attributes);
+                if (hasResourceGroups && resourceGroupPointer != 0)
+                {
+                    int realResourceGroupCount = pacStream.readInt();
+                    if (realResourceGroupCount != resourceGroupCount)
+                    {
+                        Object[] args = new Object[]{resourceGroupCount, realResourceGroupCount};
+                        throw new DecodingException("pac.resourcegroups.invalid.size", args, null);
+                    }
+                    resourceGroups = new PacGroup[resourceGroupCount];
+                    for (int i = 0; i < resourceGroupCount; i++)
+                    {
+                        PacSid id = pacStream.readSid();
+                        int attributes = pacStream.readInt();
+                        resourceGroups[i] = new PacGroup(id, attributes);
+                    }
                 }
             }
 
@@ -306,6 +330,11 @@ public class PacLogonInfo {
 
     public int getUserFlags() {
         return userFlags;
+    }
+
+    private boolean resourceSIDCompressionEnabled(PacSid resourceDomainId)
+    {
+        return resourceDomainId != null;
     }
 
 }

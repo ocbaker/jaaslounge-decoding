@@ -12,6 +12,8 @@ import java.util.List;
 
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.directory.server.kerberos.shared.crypto.encryption.CipherTextHandler;
@@ -30,7 +32,6 @@ import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.DERTaggedObject;
 import org.jaaslounge.decoding.DecodingException;
 import org.jaaslounge.decoding.DecodingUtil;
-
 
 public class KerberosEncData {
 
@@ -149,11 +150,11 @@ public class KerberosEncData {
         }
     }
 
-    public static byte[] decrypt(byte[] data, Key key, int type) throws GeneralSecurityException
-    {
+    public static byte[] decrypt(byte[] data, Key key, int type) throws GeneralSecurityException {
         byte[] decrypt = null;
-        if(type == KerberosConstants.RC4_ENC_TYPE) {
 
+        if(type == KerberosConstants.RC4_ENC_TYPE)
+        {
             byte[] code = DecodingUtil.asBytes(Cipher.DECRYPT_MODE);
             byte[] codeHmac = getHmac(code, key.getEncoded());
 
@@ -171,9 +172,9 @@ public class KerberosEncData {
                     plainDataLength);
 
             byte[] plainDataChecksum = getHmac(plainData, codeHmac);
-            if (plainDataChecksum.length >= KerberosConstants.CHECKSUM_SIZE)
-                for (int i = 0; i < KerberosConstants.CHECKSUM_SIZE; i++)
-                    if (plainDataChecksum[i] != data[i])
+            if(plainDataChecksum.length >= KerberosConstants.CHECKSUM_SIZE)
+                for(int i = 0; i < KerberosConstants.CHECKSUM_SIZE; i++)
+                    if(plainDataChecksum[i] != data[i])
                         throw new GeneralSecurityException("Checksum failed while decrypting.");
 
             int decryptLength = plainData.length - KerberosConstants.CONFOUNDER_SIZE;
@@ -187,13 +188,15 @@ public class KerberosEncData {
             EncryptionType encType = EncryptionType.getTypeByValue(type);
             EncryptionKey encKey = new EncryptionKey(encType, key.getEncoded());
             EncryptedData encData = new EncryptedData(encType, data);
-            try {
+            try
+            {
                 decrypt = handler.decrypt(encKey, encData, KeyUsage.getTypeByOrdinal(2));
-            } catch (KerberosException e) {
+            }
+            catch (KerberosException e)
+            {
                 throw new GeneralSecurityException("Failed to decrypt token: " + e.getMessage());
             }
         }
-
         return decrypt;
     }
 

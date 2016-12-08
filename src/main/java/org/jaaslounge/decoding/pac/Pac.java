@@ -15,70 +15,68 @@ import org.jaaslounge.decoding.DecodingException;
 
 import static org.apache.kerby.kerberos.kerb.type.base.KeyUsage.APP_DATA_CKSUM;
 
-public class Pac {
+public class Pac
+{
     private PacLogonInfo logonInfo;
-    private PacCredentialType credentialType;
     private PacSignature serverSignature;
     private PacSignature kdcSignature;
 
-    public Pac(byte[] data, Key key) throws DecodingException {
+    public Pac(byte[] data, Key key) throws DecodingException
+    {
         byte[] checksumData = data.clone();
-        try {
+        try
+        {
             PacDataInputStream pacStream = new PacDataInputStream(new DataInputStream(
                     new ByteArrayInputStream(data)));
 
-            if(data.length <= 8)
-            {
+            if (data.length <= 8)
                 throw new DecodingException("pac.token.empty", null, null);
-            }
 
             int bufferCount = pacStream.readInt();
             int version = pacStream.readInt();
 
-            if(version != PacConstants.PAC_VERSION) {
+            if (version != PacConstants.PAC_VERSION)
+            {
                 Object[] args = new Object[]{version};
                 throw new DecodingException("pac.version.invalid", args, null);
             }
 
-            for(int bufferIndex = 0; bufferIndex < bufferCount; bufferIndex++) {
+            for (int bufferIndex = 0; bufferIndex < bufferCount; bufferIndex++)
+            {
                 final int sigTypeLength = 4;
+
                 int bufferType = pacStream.readInt();
                 int bufferSize = pacStream.readInt();
                 long bufferOffset = pacStream.readLong();
                 byte[] bufferData = new byte[bufferSize];
-                System.arraycopy(data, (int)bufferOffset, bufferData, 0, bufferSize);
+                System.arraycopy(data, (int) bufferOffset, bufferData, 0, bufferSize);
 
-                switch (bufferType) {
-                case PacConstants.LOGON_INFO:
-                    // PAC Credential Information
-                    logonInfo = new PacLogonInfo(bufferData);
-                    break;
-                case PacConstants.CREDENTIAL_TYPE:
-                    // PAC Credential Type
-                    credentialType = new PacCredentialType(bufferData);
-                    break;
-                case PacConstants.SERVER_CHECKSUM:
-                    // PAC Server Signature
-                    serverSignature = new PacSignature(bufferData);
-                    // Clear signature from checksum copy
-                    for(int i = 0; i < bufferSize - sigTypeLength; i++)
-                    {
-                        checksumData[(int)bufferOffset + sigTypeLength + i] = 0;
-                    }
-                    break;
-                case PacConstants.PRIVSVR_CHECKSUM:
-                    // PAC KDC Signature
-                    kdcSignature = new PacSignature(bufferData);
-                    // Clear signature from checksum copy
-                    for(int i = 0; i < bufferSize - sigTypeLength; i++)
-                    {
-                        checksumData[(int)bufferOffset + sigTypeLength + i] = 0;
-                    }
-                    break;
-                default:
+                switch (bufferType)
+                {
+                    case PacConstants.LOGON_INFO:
+                        // PAC Credential Information
+                        logonInfo = new PacLogonInfo(bufferData);
+                        break;
+                    case PacConstants.SERVER_CHECKSUM:
+                        // PAC Server Signature
+                        serverSignature = new PacSignature(bufferData);
+                        // Clear signature from checksum copy
+                        for (int i = 0; i < bufferSize - sigTypeLength; i++)
+                            checksumData[(int) bufferOffset + sigTypeLength + i] = 0;
+                        break;
+                    case PacConstants.PRIVSVR_CHECKSUM:
+                        // PAC KDC Signature
+                        kdcSignature = new PacSignature(bufferData);
+                        // Clear signature from checksum copy
+                        for (int i = 0; i < bufferSize - sigTypeLength; i++)
+                            checksumData[(int) bufferOffset + sigTypeLength + i] = 0;
+                        break;
+                    default:
                 }
             }
-        } catch(IOException e) {
+        }
+        catch (IOException e)
+        {
             throw new DecodingException("pac.token.malformed", null, e);
         }
 
@@ -99,35 +97,36 @@ public class Pac {
         else
         {
             PacMac mac = new PacMac();
-            try {
+            try
+            {
                 mac.init(key);
                 mac.update(checksumData);
-            } catch(NoSuchAlgorithmException e) {
+            }
+            catch (NoSuchAlgorithmException e)
+            {
                 throw new DecodingException("pac.check.fail", null, e);
+
             }
 
             checksum = mac.doFinal();
         }
 
-        if(!Arrays.equals(serverSignature.getChecksum(), checksum))
-         {
+        if (!Arrays.equals(serverSignature.getChecksum(), checksum))
             throw new DecodingException("pac.signature.invalid", null, null);
-        }
     }
 
-    public PacLogonInfo getLogonInfo() {
+    public PacLogonInfo getLogonInfo()
+    {
         return logonInfo;
     }
 
-    public PacCredentialType getCredentialType() {
-        return credentialType;
-    }
-
-    public PacSignature getServerSignature() {
+    public PacSignature getServerSignature()
+    {
         return serverSignature;
     }
 
-    public PacSignature getKdcSignature() {
+    public PacSignature getKdcSignature()
+    {
         return kdcSignature;
     }
 }
