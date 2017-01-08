@@ -76,7 +76,7 @@ public class KerberosTicket {
                 DERInteger encType = DecodingUtil.as(DERInteger.class, DecodingUtil.as(
                         DERTaggedObject.class, encSequence, 0));
                 DEROctetString encOctets = DecodingUtil.as(DEROctetString.class, DecodingUtil.as(
-                        DERTaggedObject.class, encSequence, 2));
+                        DERTaggedObject.class, encSequence, 1));
                 byte[] crypt = encOctets.getOctets();
 
                 if(keys == null) {
