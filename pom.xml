@@ -5,7 +5,7 @@
 
     <groupId>ocbaker</groupId>
     <artifactId>jaaslounge-decoding</artifactId>
-    <version>2.0-p1-SNAPSHOT</version>
+    <version>2.0</version>
     <packaging>jar</packaging>
 
     <name>JaasLounge Decoding</name>
